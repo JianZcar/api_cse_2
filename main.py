@@ -45,16 +45,21 @@ def get_book(book_id):
         return jsonify({'success': True, 'data': book}), HTTPStatus.OK
     return jsonify({'success': False, 'error': 'Book not found'}), HTTPStatus.NOT_FOUND
 
-@app.route('/api/books', methods=['POST'])
-def create_book():
-    if not request.json:
-        return jsonify({'success': False, 'error': 'Request must be JSON'}), HTTPStatus.BAD_REQUEST
-    data = request.json
-    # Validation
-    required_fields = ['title', 'author', 'year']
+def validate_request_data(data, required_fields):
+    if not data:
+        return {'success': False, 'error': 'Request must be JSON'}, HTTPStatus.BAD_REQUEST
     for field in required_fields:
         if field not in data:
-            return jsonify({'success': False, 'error': f'{field} is required'}), HTTPStatus.BAD_REQUEST
+            return {'success': False, 'error': f'{field} is required'}, HTTPStatus.BAD_REQUEST
+    return None
+
+@app.route('/api/books', methods=['POST'])
+def create_book():
+    data = request.json
+    required_fields = ['title', 'author', 'year']
+    validation_error = validate_request_data(data, required_fields)
+    if validation_error:
+        return jsonify(validation_error[0]), validation_error[1]
 
     cursor = mysql.connection.cursor()
     query = "INSERT INTO books (title, author, year) VALUES (%s, %s, %s)"
@@ -71,7 +76,7 @@ def create_book():
     }
     return jsonify({'success': True, 'data': new_book}), HTTPStatus.CREATED
 
-@app.route('/api/books/<int:book_id>/delete', methods=['DELETE'])
+@app.route('/api/books/<int:book_id>', methods=['DELETE'])
 def delete_book(book_id):
     book = find_book(book_id)
     if not book:
@@ -84,6 +89,32 @@ def delete_book(book_id):
     cursor.close()
 
     return jsonify({'success': True, 'message': 'Book deleted successfully'}), HTTPStatus.OK
+
+@app.route('/api/books/<int:book_id>', methods=['PUT'])
+def update_book(book_id):
+    data = request.json
+    required_fields = ['title', 'author', 'year']
+    validation_error = validate_request_data(data, required_fields)
+    if validation_error:
+        return jsonify(validation_error[0]), validation_error[1]
+
+    book = find_book(book_id)
+    if not book:
+        return jsonify({'success': False, 'error': 'Book not found'}), HTTPStatus.NOT_FOUND
+
+    cursor = mysql.connection.cursor()
+    query = "UPDATE books SET title = %s, author = %s, year = %s WHERE id = %s"
+    cursor.execute(query, (data['title'], data['author'], data['year'], book_id))
+    mysql.connection.commit()
+    cursor.close()
+
+    updated_book = {
+        'id': book_id,
+        'title': data['title'],
+        'author': data['author'],
+        'year': data['year']
+    }
+    return jsonify({'success': True, 'data': updated_book}), HTTPStatus.OK
 
 if __name__ == '__main__':
     initialize()
