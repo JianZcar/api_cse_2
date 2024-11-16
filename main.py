@@ -30,6 +30,21 @@ def get_books():
     cursor.close()
     return jsonify({'success': True, 'data': books, 'total': len(books)}), HTTPStatus.OK
 
+def find_book(book_id):
+    cursor = mysql.connection.cursor()
+    query = "SELECT * FROM books WHERE id = %s"
+    cursor.execute(query, (book_id,))
+    book = cursor.fetchone()
+    cursor.close()
+    return book
+
+@app.route('/api/books/<int:book_id>', methods=['GET'])
+def get_book(book_id):
+    book = find_book(book_id)
+    if book:
+        return jsonify({'success': True, 'data': book}), HTTPStatus.OK
+    return jsonify({'success': False, 'error': 'Book not found'}), HTTPStatus.NOT_FOUND
+
 if __name__ == '__main__':
     initialize()
     app.run(debug=True)
