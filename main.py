@@ -71,6 +71,20 @@ def create_book():
     }
     return jsonify({'success': True, 'data': new_book}), HTTPStatus.CREATED
 
+@app.route('/api/books/<int:book_id>/delete', methods=['DELETE'])
+def delete_book(book_id):
+    book = find_book(book_id)
+    if not book:
+        return jsonify({'success': False, 'error': 'Book not found'}), HTTPStatus.NOT_FOUND
+
+    cursor = mysql.connection.cursor()
+    query = "DELETE FROM books WHERE id = %s"
+    cursor.execute(query, (book_id,))
+    mysql.connection.commit()
+    cursor.close()
+
+    return jsonify({'success': True, 'message': 'Book deleted successfully'}), HTTPStatus.OK
+
 if __name__ == '__main__':
     initialize()
     app.run(debug=True)
