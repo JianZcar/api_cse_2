@@ -116,6 +116,15 @@ def update_book(book_id):
     }
     return jsonify({'success': True, 'data': updated_book}), HTTPStatus.OK
 
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({'success': False, 'error': 'Not found'}), HTTPStatus.NOT_FOUND
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    return jsonify({'success': False, 'error': 'Internal server error'}), HTTPStatus.INTERNAL_SERVER_ERROR
+
 if __name__ == '__main__':
+    # Automatically Creates the database and table
     initialize()
     app.run(debug=True)
